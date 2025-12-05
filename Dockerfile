@@ -1,12 +1,15 @@
 # ==========================================
 # 阶段1：构建前端
 # ==========================================
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # 复制package文件
 COPY package*.json ./
+
+# 配置npm使用国内镜像（提高下载速度和稳定性）
+RUN npm config set registry https://registry.npmmirror.com
 
 # 安装所有依赖（包括开发依赖，用于构建）
 RUN npm ci
@@ -20,7 +23,7 @@ RUN npm run build
 # ==========================================
 # 阶段2：生产环境
 # ==========================================
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 

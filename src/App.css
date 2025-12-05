@@ -1,0 +1,79 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #F5F5F7;
+}
+
+.app-header {
+  padding: 2rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.back-btn {
+  position: absolute;
+  left: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: #F5F5F7;
+  color: #1C1C1E;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: #E5E5E7;
+  transform: translateY(-50%) translateX(-2px);
+}
+
+.app-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #1C1C1E;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+/* 响应式布局 */
+@media (max-width: 1024px) {
+  .app-main {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* 深色模式 */
+@media (prefers-color-scheme: dark) {
+  .app {
+    background: #1C1C1E;
+  }
+  
+  .app-header {
+    background: rgba(28, 28, 30, 0.8);
+  }
+  
+  .app-title {
+    color: #F5F5F7;
+  }
+}

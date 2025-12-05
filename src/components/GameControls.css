@@ -1,0 +1,249 @@
+.game-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.status-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.current-player {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.player-indicator {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F5F5F7;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.player-indicator.black .stone-preview {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1C1C1E;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.player-indicator.white .stone-preview {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.player-text {
+  color: #1C1C1E;
+}
+
+.game-result {
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(255, 149, 0, 0.3);
+}
+
+.result-text {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+}
+
+.move-count {
+  font-size: 0.875rem;
+  color: #8E8E93;
+}
+
+.game-mode-info {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.mode-badge,
+.difficulty-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: #E5E5E7;
+  color: #1C1C1E;
+}
+
+.ai-thinking {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(0, 122, 255, 0.1);
+  border-radius: 12px;
+  margin-top: 1rem;
+}
+
+.thinking-dots {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.thinking-dots .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #007AFF;
+  animation: thinking-bounce 1.4s infinite ease-in-out both;
+}
+
+.thinking-dots .dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.thinking-dots .dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes thinking-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+.thinking-text {
+  font-size: 0.875rem;
+  color: #007AFF;
+  font-weight: 500;
+}
+
+.ai-reasoning {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #F5F5F7;
+  border-radius: 12px;
+  border-left: 3px solid #007AFF;
+}
+
+.reasoning-label {
+  font-size: 0.75rem;
+  color: #8E8E93;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.reasoning-text {
+  font-size: 0.875rem;
+  color: #1C1C1E;
+  line-height: 1.5;
+}
+
+.control-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.control-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #F5F5F7;
+  color: #1C1C1E;
+}
+
+.control-btn:hover:not(:disabled) {
+  background: #E5E5E7;
+  transform: translateY(-1px);
+}
+
+.control-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.control-btn.primary {
+  background: #007AFF;
+  color: white;
+}
+
+.control-btn.primary:hover {
+  background: #0051D5;
+}
+
+.control-btn.danger {
+  background: #FF3B30;
+  color: white;
+}
+
+.control-btn.danger:hover {
+  background: #D70015;
+}
+
+/* 深色模式 */
+@media (prefers-color-scheme: dark) {
+  .game-controls {
+    background: rgba(28, 28, 30, 0.8);
+  }
+  
+  .player-text {
+    color: #F5F5F7;
+  }
+  
+  .player-indicator {
+    background: #2C2C2E;
+  }
+  
+  .control-btn {
+    background: #2C2C2E;
+    color: #F5F5F7;
+  }
+  
+  .control-btn:hover:not(:disabled) {
+    background: #3A3A3C;
+  }
+  
+  .mode-badge,
+  .difficulty-badge {
+    background: #2C2C2E;
+    color: #F5F5F7;
+  }
+  
+  .ai-reasoning {
+    background: #2C2C2E;
+  }
+  
+  .reasoning-text {
+    color: #F5F5F7;
+  }
+}

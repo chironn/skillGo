@@ -1,0 +1,104 @@
+.board-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #D4A574 0%, #C89968 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+/* AI激活状态 - 智能驾驶风格 */
+.board-container.ai-active {
+  box-shadow: 
+    0 0 20px rgba(0, 122, 255, 0.3),
+    0 0 40px rgba(0, 122, 255, 0.2),
+    0 0 60px rgba(0, 122, 255, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.1);
+  animation: ai-glow 2s ease-in-out infinite;
+}
+
+@keyframes ai-glow {
+  0%, 100% {
+    box-shadow: 
+      0 0 20px rgba(0, 122, 255, 0.3),
+      0 0 40px rgba(0, 122, 255, 0.2),
+      0 0 60px rgba(0, 122, 255, 0.1),
+      0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    box-shadow: 
+      0 0 30px rgba(0, 122, 255, 0.4),
+      0 0 60px rgba(0, 122, 255, 0.3),
+      0 0 90px rgba(0, 122, 255, 0.2),
+      0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.board-svg {
+  color: #8B6F47;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+}
+
+.grid-line {
+  opacity: 0.6;
+}
+
+.star-point {
+  opacity: 0.8;
+}
+
+.cell-interactive {
+  cursor: pointer;
+}
+
+.cell-interactive:hover {
+  fill: rgba(255, 255, 255, 0.1);
+}
+
+.stone {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.hover-stone {
+  pointer-events: none;
+}
+
+/* 深色模式 */
+@media (prefers-color-scheme: dark) {
+  .board-container {
+    background: linear-gradient(135deg, #3A3A3C 0%, #2C2C2E 100%);
+  }
+  
+  .board-svg {
+    color: #636366;
+  }
+  
+  /* 深色模式下的AI激活状态 */
+  .board-container.ai-active {
+    box-shadow: 
+      0 0 20px rgba(10, 132, 255, 0.4),
+      0 0 40px rgba(10, 132, 255, 0.3),
+      0 0 60px rgba(10, 132, 255, 0.2),
+      0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+  
+  @keyframes ai-glow {
+    0%, 100% {
+      box-shadow: 
+        0 0 20px rgba(10, 132, 255, 0.4),
+        0 0 40px rgba(10, 132, 255, 0.3),
+        0 0 60px rgba(10, 132, 255, 0.2),
+        0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    50% {
+      box-shadow: 
+        0 0 30px rgba(10, 132, 255, 0.5),
+        0 0 60px rgba(10, 132, 255, 0.4),
+        0 0 90px rgba(10, 132, 255, 0.3),
+        0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+  }
+}

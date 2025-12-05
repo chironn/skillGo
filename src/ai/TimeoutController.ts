@@ -37,8 +37,6 @@ export class TimeoutController {
       return result;
       
     } catch (error) {
-      const elapsed = Date.now() - startTime;
-      
       if (error instanceof Error && error.message.includes('Timeout')) {
         console.warn(`⏰ 任务超时 (${timeoutMs}ms)，使用降级方案`);
         return fallback;

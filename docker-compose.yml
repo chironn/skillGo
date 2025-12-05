@@ -1,0 +1,33 @@
+services:
+  skillgo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skillgo
+    ports:
+      - "5172:80"    # Web服务（宿主机5172端口映射到容器80端口）
+      # - "3456:3456"  # API代理（仅容器内部使用，无需暴露）
+    environment:
+      # AI API密钥（从.env文件或环境变量读取）
+      - VITE_KIMI_API_KEY=${VITE_KIMI_API_KEY:-}
+      - VITE_NYXAR_API_KEY=${VITE_NYXAR_API_KEY:-}
+      - VITE_SILICONFLOW_API_KEY=${VITE_SILICONFLOW_API_KEY:-}
+      - NODE_ENV=production
+    volumes:
+      # 持久化游戏记录（可选）
+      - ./gameRecord:/app/gameRecord
+      # 持久化日志（可选）
+      - ./logs:/var/log
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - skillgo-network
+
+networks:
+  skillgo-network:
+    driver: bridge

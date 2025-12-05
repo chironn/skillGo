@@ -22,7 +22,7 @@ export class SmartSkipStrategy {
   ): boolean {
     
     // 规则1：紧急情况（本地算法足够准确）
-    if (localMove.score >= 10000) {
+    if ('score' in localMove && (localMove as any).score >= 10000) {
       console.log('⚡️ 紧急情况，本地算法足够准确');
       return true;
     }

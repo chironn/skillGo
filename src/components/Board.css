@@ -69,6 +69,27 @@
   pointer-events: none;
 }
 
+/* 最后一步落子光晕效果 - 棋子边缘发光 */
+.last-move-stone {
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))
+          drop-shadow(0 0 12px rgba(255, 215, 0, 0.6))
+          drop-shadow(0 0 16px rgba(255, 215, 0, 0.4));
+  animation: stone-glow 2s ease-in-out infinite;
+}
+
+@keyframes stone-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))
+            drop-shadow(0 0 12px rgba(255, 215, 0, 0.6))
+            drop-shadow(0 0 16px rgba(255, 215, 0, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(255, 215, 0, 1))
+            drop-shadow(0 0 16px rgba(255, 215, 0, 0.8))
+            drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+  }
+}
+
 /* 深色模式 */
 @media (prefers-color-scheme: dark) {
   .board-container {

@@ -6,10 +6,13 @@ import { HintOverlay } from './HintOverlay';
 import './Board.css';
 
 export const Board = () => {
-  const { board, placeStone, currentPlayer, status, gameMode, isAIThinking } = useGameStore();
+  const { board, placeStone, currentPlayer, status, gameMode, isAIThinking, moves } = useGameStore();
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
   const boardSize = 15;
   const cellSize = 40;
+  
+  // 获取最后一步落子位置
+  const lastMove = moves.length > 0 ? moves[moves.length - 1] : null;
 
   const handleCellClick = (x: number, y: number) => {
     if (status !== 'playing') return;
@@ -130,14 +133,17 @@ export const Board = () => {
 
         {/* 棋子 */}
         {board.map((row, y) =>
-          row.map((stone, x) =>
-            stone ? (
+          row.map((stone, x) => {
+            const isLastMove = lastMove && lastMove.x === x && lastMove.y === y;
+            
+            return stone ? (
               <motion.g
                 key={`stone-${x}-${y}`}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
               >
+                {/* 棋子 */}
                 <circle
                   cx={cellSize / 2 + x * cellSize}
                   cy={cellSize / 2 + y * cellSize}
@@ -145,11 +151,11 @@ export const Board = () => {
                   fill={stone === 'black' ? '#1C1C1E' : '#FFFFFF'}
                   stroke={stone === 'black' ? '#000' : '#ccc'}
                   strokeWidth="1"
-                  className="stone"
+                  className={isLastMove ? 'stone last-move-stone' : 'stone'}
                 />
               </motion.g>
-            ) : null
-          )
+            ) : null;
+          })
         )}
       </svg>
       </div>

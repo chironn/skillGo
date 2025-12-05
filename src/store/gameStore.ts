@@ -185,6 +185,11 @@ export const useGameStore = create<GameStore>()(
         const state = get();
         state.engine.reset();
         
+        // 重置AI控制器
+        if (state.aiController) {
+          state.aiController.reset();
+        }
+        
         set((draft) => {
           draft.board = state.engine.getBoard();
           draft.moves = [];

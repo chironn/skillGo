@@ -8,6 +8,8 @@ import { AI_PROVIDERS, getEnabledProviders, getFastestProvider, type AIProvider 
 export class AIProviderService {
   private currentProvider: AIProvider | null = null;
   private useProxy: boolean = true;
+  private lastTestTime: number = 0;
+  private readonly TEST_CACHE_TTL = 5 * 60 * 1000; // 5分钟缓存
 
   constructor() {
     this.useProxy = import.meta.env.DEV; // 开发环境使用代理
@@ -53,9 +55,16 @@ export class AIProviderService {
   }
 
   /**
-   * 测试所有提供商的延迟
+   * 测试所有提供商的延迟（带缓存）
    */
   async testAllProviders(): Promise<void> {
+    // 检查缓存是否有效
+    const now = Date.now();
+    if (this.currentProvider && (now - this.lastTestTime) < this.TEST_CACHE_TTL) {
+      console.log(`⚡️ 使用缓存的提供商: ${this.currentProvider.name} (${Math.round((now - this.lastTestTime) / 1000)}秒前测试)`);
+      return;
+    }
+    
     console.log('🔍 开始测试所有AI提供商...');
     
     const providers = getEnabledProviders();
@@ -83,6 +92,7 @@ export class AIProviderService {
     this.currentProvider = getFastestProvider();
     if (this.currentProvider) {
       console.log(`🚀 已选择最快的提供商: ${this.currentProvider.name} (${this.currentProvider.latency}ms)`);
+      this.lastTestTime = now; // 更新测试时间
     } else {
       console.warn('⚠️ 没有可用的AI提供商');
     }

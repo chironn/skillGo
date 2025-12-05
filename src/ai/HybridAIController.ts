@@ -5,6 +5,11 @@ import type { AIMove, AIDifficulty } from './types';
 import { EnhancedGomokuAI, type EnhancedMove } from './EnhancedGomokuAI';
 import { PromptBuilder } from './PromptBuilder';
 import { aiProviderService } from '../services/AIProviderService';
+import { PredictiveEngine } from './PredictiveEngine';
+import { SmartSkipStrategy } from './SmartSkipStrategy';
+import { OpeningBookManager } from './OpeningBookManager';
+import { TimeoutController } from './TimeoutController';
+import { FallbackStrategy } from './FallbackStrategy';
 
 interface DifficultyConfig {
   level: AIDifficulty;
@@ -20,11 +25,32 @@ export class HybridAIController {
   private useAIEnhancement: boolean = false;
   private difficulty: AIDifficulty = 'college';
   
+  // 优化模块
+  private predictiveEngine: PredictiveEngine;
+  private skipStrategy: SmartSkipStrategy;
+  private openingBook: OpeningBookManager;
+  private timeoutController: TimeoutController;
+  private fallbackStrategy: FallbackStrategy;
+  
+  // 缓存标志：避免重复测试提供商
+  private static providersTested = false;
+  
   constructor(enableAI?: boolean) {
     this.localEngine = new EnhancedGomokuAI();
     
-    // 初始化AI提供商服务（自动测试并选择最快的）
-    if (import.meta.env.DEV) {
+    // 初始化优化模块
+    this.predictiveEngine = new PredictiveEngine();
+    this.skipStrategy = new SmartSkipStrategy();
+    this.openingBook = new OpeningBookManager();
+    this.timeoutController = new TimeoutController();
+    this.fallbackStrategy = new FallbackStrategy();
+    
+    // 设置预测引擎的AI控制器引用（避免循环依赖）
+    this.predictiveEngine.setAIController(this);
+    
+    // 初始化AI提供商服务（只测试一次）
+    if (import.meta.env.DEV && !HybridAIController.providersTested) {
+      HybridAIController.providersTested = true;
       aiProviderService.testAllProviders().catch(console.error);
     }
     
@@ -38,62 +64,149 @@ export class HybridAIController {
   }
   
   /**
-   * 获取AI落子
+   * 获取AI落子（优化版：集成预测、跳过、开局库等）
    */
   async makeMove(board: Board, history: Move[]): Promise<AIMove> {
+    const startTime = Date.now();
     const config = this.getDifficultyConfig(this.difficulty);
     const currentPlayer: Player = history.length % 2 === 0 ? 'black' : 'white';
     
-    // 步骤1：本地算法计算（必须步骤）
+    // ===== 优化1：开局库查询 (0.001秒) =====
+    const openingMoves = this.openingBook.query(history);
+    if (openingMoves) {
+      const pos = this.openingBook.selectBestMove(openingMoves, this.difficulty);
+      console.log(`📖 使用开局库: (${pos.x}, ${pos.y})`);
+      
+      const elapsed = Date.now() - startTime;
+      console.log(`⚡️ 总耗时: ${elapsed}ms`);
+      
+      return {
+        x: pos.x,
+        y: pos.y,
+        confidence: 1.0,
+        reasoning: `开局定式: ${openingMoves[0].name}`,
+        alternatives: []
+      };
+    }
+    
+    // ===== 优化2：预测缓存查询 (0.1秒) =====
+    const cachedMove = this.predictiveEngine.getFromCache(board);
+    if (cachedMove) {
+      console.log('🎯 预测缓存命中！');
+      
+      // 启动下一轮预测（为下下步准备）
+      this.predictiveEngine.startPrediction(board, history).catch(console.error);
+      
+      const elapsed = Date.now() - startTime;
+      console.log(`⚡️ 总耗时: ${elapsed}ms`);
+      
+      return cachedMove;
+    }
+    
+    // ===== 步骤1：本地算法计算（必须步骤）=====
     console.log('🔍 本地算法分析中...');
     const localMove = this.localEngine.getBestMove(board, currentPlayer, this.difficulty);
     console.log(`📊 本地建议: (${localMove.x},${localMove.y}) 分数:${localMove.score} 类型:${localMove.type}`);
     
-    // 步骤2：紧急情况直接返回本地结果（活四级别以上才算紧急）
-    if (config.localFailsafeEnabled && localMove.score >= 50000) {
-      console.log('⚠️ 检测到紧急情况，直接使用本地算法');
+    // ===== 优化3：智能跳过判断 =====
+    const shouldSkip = this.skipStrategy.shouldSkipAPI(board, history, localMove, this.difficulty);
+    
+    if (shouldSkip || !config.useAI || !this.useAIEnhancement) {
+      if (shouldSkip) {
+        console.log('⚡️ 智能跳过API，使用本地结果');
+      }
+      
+      // 启动后台预测
+      this.predictiveEngine.startPrediction(board, history).catch(console.error);
+      
+      const elapsed = Date.now() - startTime;
+      console.log(`⚡️ 总耗时: ${elapsed}ms`);
+      
       await this.simulateThinking(config.thinkingTimeRange);
       return this.convertToAIMove(localMove, '本地');
     }
     
-    // 步骤3：AI增强（如果启用且非紧急）
-    if (config.useAI && this.useAIEnhancement) {
-      const provider = aiProviderService.getCurrentProvider();
-      const providerName = provider?.name || 'AI';
-      console.log(`🤖 调用${providerName}增强...`);
-      
-      try {
-        const systemPrompt = PromptBuilder.getSystemPrompt(this.difficulty);
-        const userPrompt = this.buildEnhancedUserPrompt(board, history, localMove);
+    // ===== 步骤2：AI增强（带超时和降级）=====
+    const provider = aiProviderService.getCurrentProvider();
+    const providerName = provider?.name || 'AI';
+    console.log(`🤖 调用${providerName}增强...`);
+    
+    try {
+      // 检查是否应该直接降级
+      if (this.fallbackStrategy.shouldFallback()) {
+        console.warn('⚠️ API连续失败，直接使用本地算法');
+        this.skipStrategy.recordAPIResult(false);
         
-        console.log(`📡 发送请求到${providerName}...`);
-        const aiMove = await this.requestAIMove(systemPrompt, userPrompt, config.temperature);
+        const elapsed = Date.now() - startTime;
+        console.log(`⚡️ 总耗时（降级）: ${elapsed}ms`);
         
-        if (aiMove) {
-          console.log(`🎯 ${providerName}建议: (${aiMove.x},${aiMove.y})`);
-          
-          // 步骤4：验证AI建议
-          const isValid = this.validateMove(aiMove, board, localMove);
-          
-          if (isValid) {
-            // 步骤5：混合决策
-            const finalMove = this.blendMoves(localMove, aiMove, config.aiWeight);
-            console.log(`✅ 最终决策: (${finalMove.x},${finalMove.y}) [混合]`);
-            await this.simulateThinking(config.thinkingTimeRange);
-            return this.convertToAIMove(finalMove, '混合');
-          } else {
-            console.log(`❌ ${providerName}建议未通过验证，使用本地算法`);
-          }
-        } else {
-          console.log(`⚠️ ${providerName}返回空结果，使用本地算法`);
-        }
-      } catch (error) {
-        console.error(`❌ ${providerName}调用异常:`, error);
+        return this.convertToAIMove(localMove, '本地');
       }
+      
+      const systemPrompt = PromptBuilder.getSystemPrompt(this.difficulty);
+      const userPrompt = this.buildEnhancedUserPrompt(board, history, localMove);
+      
+      console.log(`📡 发送请求到${providerName}...`);
+      
+      // ===== 优化4：超时控制 =====
+      const timeout = this.timeoutController.getAdaptiveTimeout();
+      console.log(`⏱️ 超时设置: ${timeout}ms`);
+      
+      const aiMovePromise = this.requestAIMove(systemPrompt, userPrompt, config.temperature);
+      const aiMove = await this.timeoutController.executeWithTimeout(
+        aiMovePromise,
+        timeout,
+        null // 超时返回null
+      );
+      
+      if (aiMove) {
+        console.log(`🎯 ${providerName}建议: (${aiMove.x},${aiMove.y})`);
+        
+        // 验证AI建议
+        const isValid = this.validateMove(aiMove, board, localMove);
+        
+        if (isValid) {
+          // 记录成功
+          this.skipStrategy.recordAPIResult(true);
+          this.fallbackStrategy.recordResult(true);
+          
+          // 混合决策
+          const finalMove = this.blendMoves(localMove, aiMove, config.aiWeight);
+          console.log(`✅ 最终决策: (${finalMove.x},${finalMove.y}) [混合]`);
+          
+          // 启动后台预测
+          this.predictiveEngine.startPrediction(board, history).catch(console.error);
+          
+          const elapsed = Date.now() - startTime;
+          console.log(`⚡️ 总耗时: ${elapsed}ms`);
+          
+          await this.simulateThinking(config.thinkingTimeRange);
+          return this.convertToAIMove(finalMove, '混合');
+        } else {
+          console.log(`❌ ${providerName}建议未通过验证，使用本地算法`);
+          this.skipStrategy.recordAPIResult(false);
+          this.fallbackStrategy.recordResult(false);
+        }
+      } else {
+        console.log(`⚠️ ${providerName}超时或返回空结果，使用本地算法`);
+        this.skipStrategy.recordAPIResult(false);
+        this.fallbackStrategy.recordResult(false);
+      }
+    } catch (error) {
+      console.error(`❌ ${providerName}调用异常:`, error);
+      this.skipStrategy.recordAPIResult(false);
+      this.fallbackStrategy.recordResult(false);
     }
     
-    // 步骤6：默认返回本地算法
+    // ===== 步骤3：默认返回本地算法 =====
     console.log(`✅ 最终决策: (${localMove.x},${localMove.y}) [本地]`);
+    
+    // 启动后台预测
+    this.predictiveEngine.startPrediction(board, history).catch(console.error);
+    
+    const elapsed = Date.now() - startTime;
+    console.log(`⚡️ 总耗时: ${elapsed}ms`);
+    
     await this.simulateThinking(config.thinkingTimeRange);
     return this.convertToAIMove(localMove, '本地');
   }
@@ -355,5 +468,29 @@ ${boardStr}
    */
   getDifficulty(): AIDifficulty {
     return this.difficulty;
+  }
+  
+  /**
+   * 重置所有优化模块（新游戏时调用）
+   */
+  reset(): void {
+    this.predictiveEngine.reset();
+    this.skipStrategy.reset();
+    this.timeoutController.reset();
+    this.fallbackStrategy.reset();
+    console.log('🔄 AI控制器已重置');
+  }
+  
+  /**
+   * 获取性能统计
+   */
+  getStats() {
+    return {
+      prediction: this.predictiveEngine.getStats(),
+      skip: this.skipStrategy.getStats(),
+      opening: this.openingBook.getStats(),
+      timeout: this.timeoutController.getStats(),
+      fallback: this.fallbackStrategy.getStats()
+    };
   }
 }

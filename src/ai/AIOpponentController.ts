@@ -73,4 +73,16 @@ export class AIOpponentController {
       console.log('AI思考已取消');
     }
   }
+  
+  // 重置AI控制器（新游戏时调用）
+  reset(): void {
+    this.hybridController.reset();
+    this.cancelThinking();
+    console.log('🔄 AI对手控制器已重置');
+  }
+  
+  // 获取性能统计
+  getStats() {
+    return this.hybridController.getStats();
+  }
 }

@@ -1,0 +1,400 @@
+/* AI辅助面板样式 */
+
+.assistant-panel {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  color: white;
+  min-width: 300px;
+  max-width: 400px;
+}
+
+.assistant-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.header-title {
+  flex: 1;
+}
+
+.assistant-header h3 {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* AI提供商信息 */
+.ai-provider-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.provider-name {
+  font-size: 12px;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.model-name {
+  font-size: 11px;
+  opacity: 0.7;
+  font-family: 'Courier New', monospace;
+}
+
+/* 开关按钮 */
+.assistant-toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+  cursor: pointer;
+}
+
+.assistant-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 26px;
+  transition: 0.3s;
+}
+
+.toggle-slider:before {
+  content: "";
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+.assistant-toggle input:checked + .toggle-slider {
+  background-color: #4ade80;
+}
+
+.assistant-toggle input:checked + .toggle-slider:before {
+  transform: translateX(24px);
+}
+
+/* 辅助内容 */
+.assistant-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 能量显示 */
+.energy-display {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.energy-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.energy-icon {
+  font-size: 20px;
+}
+
+.energy-text {
+  flex: 1;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.energy-value {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.energy-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.energy-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* 辅助按钮 */
+.assistant-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  backdrop-filter: blur(10px);
+}
+
+.assistant-btn:hover:not(.disabled) {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.assistant-btn:active:not(.disabled) {
+  transform: translateY(0);
+}
+
+.assistant-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-icon {
+  font-size: 18px;
+}
+
+/* 不同级别的提示按钮样式 */
+.hint-btn.quick {
+  border-color: rgba(251, 191, 36, 0.5);
+}
+
+.hint-btn.quick:hover:not(.disabled) {
+  background: rgba(251, 191, 36, 0.3);
+  border-color: rgba(251, 191, 36, 0.7);
+}
+
+.hint-btn.standard {
+  border-color: rgba(74, 222, 128, 0.5);
+}
+
+.hint-btn.standard:hover:not(.disabled) {
+  background: rgba(74, 222, 128, 0.3);
+  border-color: rgba(74, 222, 128, 0.7);
+}
+
+.hint-btn.deep {
+  border-color: rgba(96, 165, 250, 0.5);
+}
+
+.hint-btn.deep:hover:not(.disabled) {
+  background: rgba(96, 165, 250, 0.3);
+  border-color: rgba(96, 165, 250, 0.7);
+}
+
+.btn-text {
+  flex: 1;
+  text-align: left;
+}
+
+.btn-badge {
+  background: rgba(255, 255, 255, 0.3);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 局面评估面板 */
+.evaluation-panel {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.evaluation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 评分条 */
+.evaluation-score {
+  margin-bottom: 12px;
+}
+
+.score-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.score-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+  border-radius: 4px;
+}
+
+.score-fill.black {
+  background: linear-gradient(90deg, #1f2937, #374151);
+}
+
+.score-fill.white {
+  background: linear-gradient(90deg, #f3f4f6, #e5e7eb);
+}
+
+.score-fill.equal {
+  background: linear-gradient(90deg, #6b7280, #9ca3af);
+}
+
+.score-label {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 威胁提示 */
+.threat-alert {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 建议列表 */
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px;
+  transition: all 0.2s;
+}
+
+.suggestion-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.suggestion-rank {
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.suggestion-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.suggestion-pos {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.suggestion-reason {
+  font-size: 12px;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.suggestion-type-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.suggestion-item.attack .suggestion-type-badge {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.suggestion-item.defense .suggestion-type-badge {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.suggestion-item.strategy .suggestion-type-badge {
+  background: rgba(168, 85, 247, 0.3);
+}
+
+/* 使用提示 */
+.assistant-tips {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.assistant-tips p {
+  margin: 4px 0;
+  opacity: 0.9;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .assistant-panel {
+    min-width: 100%;
+    max-width: 100%;
+  }
+}

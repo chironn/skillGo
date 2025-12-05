@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
+import { HintOverlay } from './HintOverlay';
 import './Board.css';
 
 export const Board = () => {
@@ -48,12 +49,16 @@ export const Board = () => {
 
   return (
     <div className={`board-container ${isBoardDisabled ? 'ai-active' : ''}`}>
-      <svg
-        width={cellSize * boardSize}
-        height={cellSize * boardSize}
-        className="board-svg"
-        onMouseLeave={handleMouseLeave}
-      >
+      <div className="board-wrapper">
+        {/* 提示覆盖层 */}
+        <HintOverlay cellSize={cellSize} boardSize={boardSize} />
+        
+        <svg
+          width={cellSize * boardSize}
+          height={cellSize * boardSize}
+          className="board-svg"
+          onMouseLeave={handleMouseLeave}
+        >
         {/* 棋盘网格 */}
         {Array.from({ length: boardSize }).map((_, i) => (
           <g key={`grid-${i}`}>
@@ -147,6 +152,7 @@ export const Board = () => {
           )
         )}
       </svg>
+      </div>
     </div>
   );
 };

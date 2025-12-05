@@ -7,6 +7,7 @@ import { storageService } from '../services/StorageService';
 import { audioService } from '../services/AudioService';
 import { AIOpponentController } from '../ai/AIOpponentController';
 import type { GameMode, AIDifficulty } from '../ai/types';
+import { aiAssistantService, type HintResult } from '../services/AIAssistantService';
 
 interface GameStore extends GameState {
   engine: GameEngine;
@@ -17,6 +18,13 @@ interface GameStore extends GameState {
   aiController: AIOpponentController | null;
   isAIThinking: boolean;
   aiReasoning?: string;
+  
+  // AI辅助相关状态
+  assistantEnabled: boolean;
+  energy: number;
+  maxEnergy: number;
+  currentHint: HintResult | null;
+  showHintOverlay: boolean;
   
   // 操作方法
   placeStone: (x: number, y: number) => void;
@@ -29,6 +37,11 @@ interface GameStore extends GameState {
   // AI相关方法
   setGameMode: (mode: GameMode, difficulty?: AIDifficulty) => void;
   triggerAIMove: () => Promise<void>;
+  
+  // AI辅助方法
+  toggleAssistant: () => void;
+  requestHint: (level?: 'quick' | 'standard' | 'deep') => Promise<void>;
+  clearHint: () => void;
 }
 
 export const useGameStore = create<GameStore>()(
@@ -54,6 +67,13 @@ export const useGameStore = create<GameStore>()(
       aiController: null,
       isAIThinking: false,
       aiReasoning: undefined,
+      
+      // AI辅助初始状态
+      assistantEnabled: false,
+      energy: 0,
+      maxEnergy: 0,
+      currentHint: null,
+      showHintOverlay: false,
 
       // 落子
       placeStone: (x: number, y: number) => {
@@ -68,6 +88,11 @@ export const useGameStore = create<GameStore>()(
 
         // 播放音效
         audioService.playStoneSound();
+        
+        // 步数增加（用于冷却计算）
+        if (state.assistantEnabled) {
+          aiAssistantService.incrementStep();
+        }
 
         // 检查胜负
         const winResult = state.engine.checkWin();
@@ -86,6 +111,10 @@ export const useGameStore = create<GameStore>()(
         set((draft) => {
           draft.board = state.engine.getBoard();
           draft.moves = state.engine.getMoves();
+          
+          // 落子后清除提示
+          draft.currentHint = null;
+          draft.showHintOverlay = false;
           
           if (winResult.winner || winResult.isDraw) {
             draft.status = 'finished';
@@ -111,16 +140,43 @@ export const useGameStore = create<GameStore>()(
       // 悔棋
       undo: () => {
         const state = get();
-        const success = state.engine.undo();
         
-        if (success) {
-          set((draft) => {
-            draft.board = state.engine.getBoard();
-            draft.moves = state.engine.getMoves();
-            draft.currentPlayer = state.engine.getCurrentPlayer();
-            draft.status = 'playing';
-            draft.result = undefined;
-          });
+        // AI模式下，悔棋需要撤回两步（AI的落子 + 玩家的落子）
+        if (state.gameMode === 'ai') {
+          // 检查是否有足够的步数可以撤回
+          if (state.moves.length < 2) {
+            console.log('步数不足，无法悔棋');
+            return;
+          }
+          
+          // 撤回两步
+          const success1 = state.engine.undo(); // 撤回AI的落子
+          const success2 = state.engine.undo(); // 撤回玩家的落子
+          
+          if (success1 && success2) {
+            set((draft) => {
+              draft.board = state.engine.getBoard();
+              draft.moves = state.engine.getMoves();
+              draft.currentPlayer = state.engine.getCurrentPlayer();
+              draft.status = 'playing';
+              draft.result = undefined;
+            });
+            console.log('↩️ 已悔棋（撤回2步）');
+          }
+        } else {
+          // PVP模式，只撤回一步
+          const success = state.engine.undo();
+          
+          if (success) {
+            set((draft) => {
+              draft.board = state.engine.getBoard();
+              draft.moves = state.engine.getMoves();
+              draft.currentPlayer = state.engine.getCurrentPlayer();
+              draft.status = 'playing';
+              draft.result = undefined;
+            });
+            console.log('↩️ 已悔棋（撤回1步）');
+          }
         }
       },
 
@@ -205,6 +261,11 @@ export const useGameStore = create<GameStore>()(
               draft.aiController.setDifficulty(difficulty);
             }
             
+            // 初始化AI辅助服务
+            aiAssistantService.initialize(draft.aiDifficulty);
+            draft.energy = aiAssistantService.getEnergy();
+            draft.maxEnergy = aiAssistantService.getMaxEnergy();
+            
             // 设置玩家信息
             draft.players.black = { name: '玩家', color: 'black' };
             draft.players.white = { name: `AI(${draft.aiDifficulty})`, color: 'white' };
@@ -214,6 +275,7 @@ export const useGameStore = create<GameStore>()(
             // PVP模式
             draft.players.black = { name: '黑方', color: 'black' };
             draft.players.white = { name: '白方', color: 'white' };
+            draft.assistantEnabled = false;
             
             console.log(`✅ PVP模式已启用`);
           }
@@ -281,6 +343,70 @@ export const useGameStore = create<GameStore>()(
             draft.isAIThinking = false;
           });
         }
+      },
+      
+      // 切换AI辅助
+      toggleAssistant: () => {
+        set((draft) => {
+          draft.assistantEnabled = !draft.assistantEnabled;
+          
+          if (draft.assistantEnabled) {
+            console.log('✅ AI辅助已启用');
+          } else {
+            console.log('❌ AI辅助已禁用');
+            draft.showHintOverlay = false;
+            draft.currentHint = null;
+          }
+        });
+      },
+      
+      // 请求AI提示
+      requestHint: async (level: 'quick' | 'standard' | 'deep' = 'standard') => {
+        const state = get();
+        
+        if (!state.assistantEnabled) {
+          console.log('AI辅助未启用');
+          return;
+        }
+        
+        if (state.gameMode !== 'ai') {
+          console.log('仅在AI对战模式下可用');
+          return;
+        }
+        
+        if (state.currentPlayer !== 'black') {
+          console.log('仅在玩家回合可用');
+          return;
+        }
+        
+        if (!aiAssistantService.canUseHint(level)) {
+          const costs = aiAssistantService.getEnergyCosts();
+          console.log(`能量不足或冷却中，需要${costs[level]}能量`);
+          return;
+        }
+        
+        try {
+          const hint = await aiAssistantService.getHint(state.board, state.currentPlayer, level);
+          aiAssistantService.useHint(level);
+          
+          set((draft) => {
+            draft.currentHint = hint;
+            draft.showHintOverlay = true;
+            draft.energy = aiAssistantService.getEnergy();
+          });
+          
+          console.log(`💡 ${level}级别提示已生成`);
+        } catch (error) {
+          console.error('获取提示失败:', error);
+        }
+      },
+      
+      // 清除提示
+      clearHint: () => {
+        set((draft) => {
+          draft.currentHint = null;
+          draft.showHintOverlay = false;
+        });
       },
     };
   })

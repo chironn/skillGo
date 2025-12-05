@@ -10,14 +10,16 @@ export class AIOpponentController {
 
   constructor() {
     // 初始化混合AI控制器
-    const apiKey = import.meta.env?.VITE_KIMI_API_KEY;
-    const baseURL = import.meta.env?.VITE_KIMI_API_BASE_URL;
+    // 检查是否配置了任何AI提供商
+    const hasAIProvider = 
+      import.meta.env?.VITE_KIMI_API_KEY ||
+      import.meta.env?.VITE_NYXAR_API_KEY ||
+      import.meta.env?.VITE_SILICONFLOW_API_KEY;
     
     console.log('🔧 初始化AI控制器');
-    console.log('  API Key:', apiKey ? '已配置' : '未配置');
-    console.log('  Base URL:', baseURL || '使用默认');
+    console.log('  AI增强:', hasAIProvider ? '已启用' : '纯本地模式');
     
-    this.hybridController = new HybridAIController(apiKey, baseURL);
+    this.hybridController = new HybridAIController(hasAIProvider);
   }
 
   // 获取AI落子

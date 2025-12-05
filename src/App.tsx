@@ -3,6 +3,7 @@ import { HomePage } from './components/HomePage'
 import { Board } from './components/Board'
 import { GameControls } from './components/GameControls'
 import { HistoryList } from './components/HistoryList'
+import { AssistantPanel } from './components/AssistantPanel'
 import { useGameStore } from './store/gameStore'
 import type { GameMode, AIDifficulty } from './ai/types'
 import './App.css'
@@ -61,6 +62,7 @@ function App() {
       </header>
       
       <main className="app-main">
+        <AssistantPanel />
         <Board />
         <GameControls />
       </main>

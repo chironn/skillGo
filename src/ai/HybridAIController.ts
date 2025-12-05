@@ -1,15 +1,15 @@
 // 混合AI控制器
-// 结合本地算法和Kimi API，提供可靠且智能的AI对手
+// 结合本地算法和多个AI API，提供可靠且智能的AI对手
 import type { Board, Move, Player } from '../types';
 import type { AIMove, AIDifficulty } from './types';
 import { EnhancedGomokuAI, type EnhancedMove } from './EnhancedGomokuAI';
-import { KimiAPIService } from './KimiAPIService';
 import { PromptBuilder } from './PromptBuilder';
+import { aiProviderService } from '../services/AIProviderService';
 
 interface DifficultyConfig {
   level: AIDifficulty;
-  useKimi: boolean;
-  kimiWeight: number; // Kimi AI的权重 0-1
+  useAI: boolean; // 是否使用AI增强
+  aiWeight: number; // AI的权重 0-1
   temperature: number;
   thinkingTimeRange: [number, number];
   localFailsafeEnabled: boolean; // 本地算法保底
@@ -17,22 +17,23 @@ interface DifficultyConfig {
 
 export class HybridAIController {
   private localEngine: EnhancedGomokuAI;
-  private kimiService: KimiAPIService | null = null;
+  private useAIEnhancement: boolean = false;
   private difficulty: AIDifficulty = 'college';
   
-  constructor(apiKey?: string, baseURL?: string) {
+  constructor(enableAI?: boolean) {
     this.localEngine = new EnhancedGomokuAI();
     
-    // 如果提供了API Key，初始化Kimi服务
-    if (apiKey) {
-      try {
-        this.kimiService = new KimiAPIService(apiKey, baseURL || 'https://api.kimi.com/coding');
-        console.log('✅ Kimi API服务已启用');
-      } catch (error) {
-        console.warn('⚠️ Kimi API初始化失败，将使用纯本地模式:', error);
-      }
+    // 初始化AI提供商服务（自动测试并选择最快的）
+    if (import.meta.env.DEV) {
+      aiProviderService.testAllProviders().catch(console.error);
+    }
+    
+    // 启用AI增强
+    if (enableAI) {
+      this.useAIEnhancement = true;
+      console.log('✅ AI增强服务已启用');
     } else {
-      console.log('ℹ️ 未配置Kimi API，使用纯本地模式');
+      console.log('ℹ️ 未配置AI API，使用纯本地模式');
     }
   }
   
@@ -55,37 +56,39 @@ export class HybridAIController {
       return this.convertToAIMove(localMove, '本地');
     }
     
-    // 步骤3：Kimi增强（如果启用且非紧急）
-    if (config.useKimi && this.kimiService) {
-      console.log('🤖 调用Kimi AI增强...');
+    // 步骤3：AI增强（如果启用且非紧急）
+    if (config.useAI && this.useAIEnhancement) {
+      const provider = aiProviderService.getCurrentProvider();
+      const providerName = provider?.name || 'AI';
+      console.log(`🤖 调用${providerName}增强...`);
       
       try {
         const systemPrompt = PromptBuilder.getSystemPrompt(this.difficulty);
         const userPrompt = this.buildEnhancedUserPrompt(board, history, localMove);
         
-        console.log('📡 发送请求到Kimi API...');
-        const kimiMove = await this.kimiService.requestMove(systemPrompt, userPrompt, config.temperature);
+        console.log(`📡 发送请求到${providerName}...`);
+        const aiMove = await this.requestAIMove(systemPrompt, userPrompt, config.temperature);
         
-        if (kimiMove) {
-          console.log(`🎯 Kimi建议: (${kimiMove.x},${kimiMove.y})`);
+        if (aiMove) {
+          console.log(`🎯 ${providerName}建议: (${aiMove.x},${aiMove.y})`);
           
-          // 步骤4：验证Kimi建议
-          const isValid = this.validateMove(kimiMove, board, localMove);
+          // 步骤4：验证AI建议
+          const isValid = this.validateMove(aiMove, board, localMove);
           
           if (isValid) {
             // 步骤5：混合决策
-            const finalMove = this.blendMoves(localMove, kimiMove, config.kimiWeight);
+            const finalMove = this.blendMoves(localMove, aiMove, config.aiWeight);
             console.log(`✅ 最终决策: (${finalMove.x},${finalMove.y}) [混合]`);
             await this.simulateThinking(config.thinkingTimeRange);
             return this.convertToAIMove(finalMove, '混合');
           } else {
-            console.log('❌ Kimi建议未通过验证，使用本地算法');
+            console.log(`❌ ${providerName}建议未通过验证，使用本地算法`);
           }
         } else {
-          console.log('⚠️ Kimi API返回空结果，使用本地算法');
+          console.log(`⚠️ ${providerName}返回空结果，使用本地算法`);
         }
       } catch (error) {
-        console.error('❌ Kimi API调用异常:', error);
+        console.error(`❌ ${providerName}调用异常:`, error);
       }
     }
     
@@ -95,6 +98,59 @@ export class HybridAIController {
     return this.convertToAIMove(localMove, '本地');
   }
   
+  /**
+   * 请求AI提供商的落子建议
+   */
+  private async requestAIMove(systemPrompt: string, userPrompt: string, temperature: number): Promise<EnhancedMove | null> {
+    try {
+      // 调用AI提供商服务
+      const response = await aiProviderService.callAI([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ], {
+        temperature,
+        max_tokens: 1000
+      });
+
+      // 解析响应
+      if (response?.choices?.[0]?.message?.content) {
+        const content = response.choices[0].message.content;
+        return this.parseAIResponse(content);
+      }
+
+      return null;
+    } catch (error) {
+      console.error('AI请求失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 解析AI响应
+   */
+  private parseAIResponse(content: string): EnhancedMove | null {
+    try {
+      const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      
+      if (!parsed.move || typeof parsed.move.x !== 'number' || typeof parsed.move.y !== 'number') {
+        throw new Error('无效的响应格式');
+      }
+      
+      return {
+        x: parsed.move.x,
+        y: parsed.move.y,
+        score: 0,
+        type: 'ai',
+        reasoning: parsed.reasoning || 'AI决策',
+        confidence: parsed.confidence || 0.7
+      };
+    } catch (error) {
+      console.error('解析AI响应失败:', error);
+      return null;
+    }
+  }
+
   /**
    * 构建增强的用户提示（包含本地算法建议）
    */
@@ -202,30 +258,30 @@ ${boardStr}
   /**
    * 混合两个决策
    */
-  private blendMoves(localMove: EnhancedMove, kimiMove: EnhancedMove, kimiWeight: number): EnhancedMove {
-    // 如果Kimi和本地算法建议相同，直接返回
-    if (localMove.x === kimiMove.x && localMove.y === kimiMove.y) {
+  private blendMoves(localMove: EnhancedMove, aiMove: EnhancedMove, aiWeight: number): EnhancedMove {
+    // 如果AI和本地算法建议相同，直接返回
+    if (localMove.x === aiMove.x && localMove.y === aiMove.y) {
       return {
         ...localMove,
         confidence: Math.min(1.0, localMove.confidence + 0.1),
-        reasoning: `本地算法和Kimi AI一致建议：${localMove.reasoning}`
+        reasoning: `本地算法和AI一致建议：${localMove.reasoning}`
       };
     }
     
     // 根据权重决定
-    const useKimi = Math.random() < kimiWeight;
+    const useAI = Math.random() < aiWeight;
     
-    if (useKimi) {
+    if (useAI) {
       return {
-        ...kimiMove,
-        type: 'kimi-enhanced',
-        reasoning: `Kimi建议：${kimiMove.reasoning}（本地备选：${localMove.type}）`
+        ...aiMove,
+        type: 'ai-enhanced',
+        reasoning: `AI建议：${aiMove.reasoning}（本地备选：${localMove.type}）`
       };
     } else {
       return {
         ...localMove,
         type: 'local-primary',
-        reasoning: `${localMove.reasoning}（Kimi备选：(${kimiMove.x},${kimiMove.y})）`
+        reasoning: `${localMove.reasoning}（AI备选：(${aiMove.x},${aiMove.y})）`
       };
     }
   }
@@ -250,24 +306,24 @@ ${boardStr}
     const configs: Record<AIDifficulty, DifficultyConfig> = {
       elementary: {
         level: 'elementary',
-        useKimi: false,
-        kimiWeight: 0,
+        useAI: false,
+        aiWeight: 0,
         temperature: 1.0,
         thinkingTimeRange: [500, 1500],
         localFailsafeEnabled: true
       },
       college: {
         level: 'college',
-        useKimi: true,
-        kimiWeight: 0.3, // Kimi 30%影响
+        useAI: true,
+        aiWeight: 0.3, // AI 30%影响
         temperature: 0.8,
         thinkingTimeRange: [1000, 2500],
         localFailsafeEnabled: true
       },
       master: {
         level: 'master',
-        useKimi: true,
-        kimiWeight: 0.4, // Kimi 40%影响
+        useAI: true,
+        aiWeight: 0.4, // AI 40%影响
         temperature: 0.5,
         thinkingTimeRange: [2000, 4000],
         localFailsafeEnabled: true

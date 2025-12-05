@@ -25,7 +25,7 @@ export class KimiAPIService {
       try {
         // 开发环境使用本地代理，避免CORS问题
         const endpoint = this.useProxy 
-          ? 'http://localhost:3001/api/kimi/messages'
+          ? 'http://localhost:3456/api/kimi/messages'
           : `${this.baseURL}/v1/messages`;
         
         const headers: Record<string, string> = {

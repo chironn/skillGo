@@ -14,7 +14,7 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '../.env') });
 
 const app = express();
-const PORT = 3001;
+const PORT = 3456;
 
 // 启用CORS和JSON解析
 app.use(cors());

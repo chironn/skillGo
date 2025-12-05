@@ -48,8 +48,8 @@ export class HybridAIController {
     const localMove = this.localEngine.getBestMove(board, currentPlayer, this.difficulty);
     console.log(`📊 本地建议: (${localMove.x},${localMove.y}) 分数:${localMove.score} 类型:${localMove.type}`);
     
-    // 步骤2：紧急情况直接返回本地结果
-    if (config.localFailsafeEnabled && localMove.score >= 10000) {
+    // 步骤2：紧急情况直接返回本地结果（活四级别以上才算紧急）
+    if (config.localFailsafeEnabled && localMove.score >= 50000) {
       console.log('⚠️ 检测到紧急情况，直接使用本地算法');
       await this.simulateThinking(config.thinkingTimeRange);
       return this.convertToAIMove(localMove, '本地');
@@ -124,7 +124,7 @@ ${boardStr}
 ## 你的任务
 1. 评估本地算法的建议是否合理
 2. 从战略角度考虑是否有更好的选择
-3. 如果本地算法建议是紧急防守（score > 10000），你应该同意或提供更紧急的位置
+3. 如果本地算法建议是紧急防守（score > 50000），你应该同意或提供更紧急的位置
 4. 给出你的建议和2个备选位置
 
 立即输出JSON格式，不要有其他文字：
@@ -169,8 +169,8 @@ ${boardStr}
       return false;
     }
     
-    // 检查3：如果本地算法检测到必防（>10000分），Kimi必须在附近
-    if (localMove.score >= 10000) {
+    // 检查3：如果本地算法检测到必防（>50000分），Kimi必须在附近
+    if (localMove.score >= 50000) {
       const distance = Math.max(Math.abs(x - localMove.x), Math.abs(y - localMove.y));
       if (distance > 2) {
         console.warn(`❌ Kimi忽略了紧急威胁（本地评分${localMove.score}）`);
